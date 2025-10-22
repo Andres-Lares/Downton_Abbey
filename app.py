@@ -80,7 +80,7 @@ RELATIONSHIPS = [
 # -----------------------
 
 def build_family_network():
-    """Create and return a PyVis network visualization as a temporary HTML file."""
+    """Create and return a PyVis interactive graph as a temporary HTML file."""
     G = nx.Graph()
 
     # Add nodes
@@ -103,28 +103,29 @@ def build_family_network():
             "work": "#cccccc",
             "colleague": "#cccccc",
         }.get(rel, "#aaaaaa")
-
         G.add_edge(src, tgt, color=style, width=2)
 
-    # Create network
     net = Network(
         height="700px", width="100%",
-        bgcolor="#0b0b0b", font_color="white"
+        bgcolor="#0b0b0b", font_color="white", directed=False
     )
 
-    # Layout & physics
+    # Use a stable layout
     net.barnes_hut(gravity=-20000, central_gravity=0.3, spring_length=180, damping=0.9)
 
+    # Add nodes and edges into the pyvis Network
     for node, data in G.nodes(data=True):
-        net.add_node(node, **data)
+        # pyvis expects keys: id, label, title, color, size
+        net.add_node(node, label=data.get("label"), title=data.get("label"),
+                     color=data.get("color"), size=data.get("size"))
     for u, v, data in G.edges(data=True):
-        net.add_edge(u, v, color=data["color"])
+        net.add_edge(u, v, color=data.get("color"), width=data.get("width", 2))
 
-    # Output HTML
+    # Write the HTML to a file (safe in headless / cloud environments)
     tmp = tempfile.gettempdir()
-    path = os.path.join(tmp, "downton_tree.html")
-    net.show(path)
-    return path
+    out_path = os.path.join(tmp, "downton_tree.html")
+    net.write_html(out_path)   # <<< use write_html instead of show()
+    return out_path
 
 # -----------------------
 # APP DISPLAY
@@ -138,3 +139,4 @@ st.markdown("---")
 st.caption(
     "Accurate to *Downton Abbey: The Grand Finale (2025)* — Relationships reflect family, marriages, and main household connections."
 )
+
